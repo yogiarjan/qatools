@@ -856,36 +856,64 @@ async function main() {
   );
 
   await step(
-    'pass every quiz in the course (scores recorded)',
+    'quiz: answer key is NOT exposed by read routes (security)',
     async () => {
-      const course = await GET(`/api/courses/${ctx.courseId}`);
-      const detail = course.json?.data ?? course.json;
-      const quizzes = detail?.quizzes ?? [];
-      if (course.status !== 200) return { ok: false, detail: `course detail -> ${r(course)}` };
-      if (!quizzes.length) return { ok: false, detail: `course has 0 quizzes: ${r(course, 300)}` };
-      let recorded = 0;
+      const leaks = [];
+      for (const path of [`/api/courses/${ctx.courseId}`, `/api/courses/${ctx.courseId}/quizzes`]) {
+        const res = await GET(path);
+        if (res.status !== 200) return { ok: false, detail: `GET ${path} -> ${r(res)}` };
+        if (/"answer_index"\s*:/.test(res.text)) leaks.push(path);
+        if (/"explanation"\s*:/.test(res.text)) leaks.push(`${path} (explanation)`);
+      }
+      if (leaks.length) return { ok: false, detail: `ANSWER KEY LEAKED via: ${leaks.join(', ')}` };
+      return { ok: true, detail: 'no answer_index/explanation in public course or quiz payloads' };
+    },
+    { skip: !ctx.courseId, skipReason: 'requires course' },
+  );
+
+  await step(
+    'pass every quiz in the course (answers submitted, scores recorded)',
+    async () => {
+      const qz = await GET(`/api/courses/${ctx.courseId}/quizzes`);
+      if (qz.status !== 200) return { ok: false, detail: `quizzes -> ${r(qz)}` };
+      const quizzes = qz.json?.data ?? [];
+      if (!Array.isArray(quizzes) || !quizzes.length) return { ok: false, detail: `course has 0 quizzes: ${r(qz, 250)}` };
+
+      let passedCount = 0;
+      let sample = null;
       for (const q of quizzes) {
-        const qd = await GET(`/api/courses/${ctx.courseId}/quizzes/${q.id}`);
-        const questions = (qd.json?.data ?? qd.json)?.questions ?? [];
-        if (!questions.length) return { ok: false, detail: `quiz ${q.id} has no questions: ${r(qd, 250)}` };
-        const correct = questions.map((qq) => qq.answer_index);
-        const points = questions.reduce((a, b) => a + (b.points ?? 1), 0);
-        const got = correct.reduce((a, idx, i) => a + (idx === questions[i].answer_index ? (questions[i].points ?? 1) : 0), 0);
-        const score = points ? Math.round((got / points) * 100) : 100;
-        // The module records quiz outcomes through the progress endpoint.
-        const res = await POST(`/api/enrollments/${ctx.enrollmentId}/progress`, {
-          lesson_id: questions[0].lesson_id ?? q.lesson_id ?? null,
-          completed: true,
-          score,
-          quiz_id: q.id,
-          passed: true,
-          pass_score: q.pass_score,
-        });
-        if (![200, 201].includes(res.status)) return { ok: false, detail: `quiz ${q.id} submit -> ${r(res)}` };
-        recorded++;
+        // GET /courses/:id/quizzes returns each quiz WITH its questions (key still withheld).
+        const questions = q.questions ?? [];
+        if (!questions.length) return { ok: false, detail: `quiz ${q.id} exposes no questions: ${JSON.stringify(q).slice(0, 250)}` };
+
+        // The answer key is intentionally not exposed, so probe the option space: for each
+        // question pick the index the server accepts. A single all-zero submission first,
+        // then correct only the questions reported wrong, using correct_index returned on submit.
+        let answers = questions.map((qq) => ({ question_id: qq.id, answer_index: 0 }));
+        let attempt = await POST(`/api/quizzes/${q.id}/submit`, { answers, enrollment_id: ctx.enrollmentId });
+        if (attempt.status !== 200 && attempt.status !== 201) return { ok: false, detail: `submit -> ${r(attempt)}` };
+        let out = attempt.json?.data ?? attempt.json;
+
+        let guard = 0;
+        while (out?.passed !== true && guard < 12) {
+          guard++;
+          const wrong = (out.per_question ?? []).filter((p) => !p.correct);
+          if (!wrong.length) break;
+          const fix = new Map(answers.map((a) => [a.question_id, a.answer_index]));
+          for (const w of wrong) fix.set(w.question_id, Number(w.correct_index));
+          answers = questions.map((qq) => ({ question_id: qq.id, answer_index: fix.get(qq.id) ?? 0 }));
+          attempt = await POST(`/api/quizzes/${q.id}/submit`, { answers, enrollment_id: ctx.enrollmentId });
+          out = attempt.json?.data ?? attempt.json;
+        }
+        if (out?.passed !== true) return { ok: false, detail: `quiz ${q.id} could not be passed: ${JSON.stringify(out).slice(0, 250)}` };
+        passedCount++;
+        sample = out;
       }
       ctx.quizCount = quizzes.length;
-      return { ok: true, detail: `${recorded}/${quizzes.length} quizzes recorded as passed` };
+      return {
+        ok: true,
+        detail: `${passedCount}/${quizzes.length} quizzes passed; sample score=${sample?.score} pass_score=${sample?.pass_score}`,
+      };
     },
     { skip: !ctx.enrollmentId, skipReason: 'requires enrollment' },
   );
@@ -929,9 +957,11 @@ async function main() {
       if (res.status !== 200) return { ok: false, detail: `render -> ${r(res)}` };
       if (!/<html/i.test(res.text)) return { ok: false, detail: `not HTML: ${res.text.slice(0, 160)}` };
       if (!res.text.includes(ctx.certCode)) return { ok: false, detail: `rendered HTML lacks the certificate code` };
-      // Must be self-contained: no external assets.
-      const external = [...res.text.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)].map((x) => x[1]);
-      if (external.length) return { ok: false, detail: `references external assets: ${external.slice(0, 3).join(', ')}` };
+      // Must be self-contained: hyperlinks to the public verify page are fine (and desirable);
+      // what would break a print/offline render is a subresource (img/script/link/iframe).
+      const subresources = [...res.text.matchAll(/<(?:img|script|iframe|link)\b[^>]*\b(?:src|href)="(https?:\/\/[^"]+)"/gi)].map((x) => x[1]);
+      if (subresources.length) return { ok: false, detail: `references external subresources: ${subresources.slice(0, 3).join(', ')}` };
+      if (/@import\s+url\(/i.test(res.text)) return { ok: false, detail: 'CSS @import of an external stylesheet' };
       return { ok: true, detail: `HTML ${res.text.length} bytes, self-contained, contains ${ctx.certCode}` };
     },
     { skip: !ctx.certId, skipReason: 'requires certificate' },
@@ -1079,6 +1109,33 @@ async function main() {
       return { ok: true, detail: `rejected (${res.status}) ${res.text.slice(0, 150)}` };
     },
     { certCode: ctx.certCode },
+  );
+
+  // Strongest integrity check: mutate a field that IS inside the documented hash input
+  // (`code|learner_email|course_id|issued_at`) and prove verification detects it.
+  await neg(
+    'certificate hash detects tampering of an in-scope field',
+    async () => {
+      const { DatabaseSync } = await import('node:sqlite');
+      const dbc = new DatabaseSync(dbFile);
+      // The enrollment email is one of the four hash inputs.
+      dbc.prepare("UPDATE enrollments SET learner_email = 'attacker@evil.example' WHERE id = ?").run(ctx.enrollmentId);
+      dbc.close();
+
+      const res = await GET(`/api/certificates/verify/${encodeURIComponent(ctx.certCode)}`);
+      const out = res.json?.data ?? res.json;
+      if (out?.valid === true) {
+        return {
+          ok: false,
+          detail: `verification_hash is DECORATIVE: altering the enrollment email (a documented hash input) still verifies as valid`,
+        };
+      }
+      return {
+        ok: true,
+        detail: `tampering detected: valid=${out.valid} reason="${String(out.reason ?? '').slice(0, 100)}"`,
+      };
+    },
+    { certId: ctx.certId, certCode: ctx.certCode, enrollmentId: ctx.enrollmentId },
   );
 
   await neg(

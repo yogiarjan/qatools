@@ -34,11 +34,26 @@ Keluaran berakhir dengan `PROBE_RESULT=PASS` atau `PROBE_RESULT=FAIL`.
 cd apps/web && node node_modules/vite/bin/vite.js build
 ```
 
+> On Windows, if `vite` is not resolvable from the root, invoke the copy inside the web
+> package: `node apps/web/node_modules/vite/bin/vite.js build` (run from `apps/web`).
+
 ## 4. Test antar-lane
 
 ```bash
 node --test --import ./apps/api/node_modules/tsx/dist/loader.mjs apps/api/test/*.test.ts
 ```
+
+Passing an explicit file list is more reliable across shells:
+
+```bash
+node --test --import ./apps/api/node_modules/tsx/dist/loader.mjs \
+  apps/api/test/lane-a.test.ts apps/api/test/lane-b.test.ts apps/api/test/lane-c.test.ts \
+  apps/api/test/lane-d.test.ts apps/api/test/lane-e.test.ts
+```
+
+> **Windows note:** the `--import` argument must be a `file://` URL or a path resolvable by Node.
+> A bare `C:\...` path fails with `ERR_UNSUPPORTED_ESM_URL_SCHEME`; use
+> `"file:///C:/path/to/tsx/dist/loader.mjs"` instead.
 
 ## 5. Seeder
 

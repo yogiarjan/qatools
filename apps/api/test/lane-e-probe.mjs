@@ -46,10 +46,18 @@ console.log('POST /api/enrollments (idempotent) ->', enr2.status, 'same id?', en
 const tooEarly = await j('POST', `/api/enrollments/${enr.parsed.data.id}/certificate`);
 console.log('certificate BEFORE completion ->', tooEarly.status, tooEarly.parsed?.error?.message?.slice(0, 90));
 
-// Submit quiz, then complete every lesson.
-const answers = (quiz?.questions ?? []).map((q) => ({ question_id: q.id, answer_index: 0 }));
+// Submit quiz. The public projection hides the key, so the probe first fetches the answers by
+// brute force: it submits once, reads correct_index from the released key, then re-submits.
+const first = await j('POST', `/api/quizzes/${quiz.id}/submit`, {
+  answers: (quiz?.questions ?? []).map((q) => ({ question_id: q.id, answer_index: 0 })),
+  enrollment_id: enr.parsed.data.id,
+});
+const answerKey = new Map((first.parsed?.data?.per_question ?? []).map((p) => [p.question_id, p.correct_index]));
+const answers = (quiz?.questions ?? []).map((q) => ({ question_id: q.id, answer_index: answerKey.get(q.id) ?? 0 }));
 const sub = await j('POST', `/api/quizzes/${quiz.id}/submit`, { answers, enrollment_id: enr.parsed.data.id });
 console.log('POST /api/quizzes/:id/submit ->', sub.status, 'score=', sub.parsed?.data?.score,
+  'passed=', sub.parsed?.data?.passed,
+  'recorded=', sub.parsed?.data?.recorded_for_enrollment,
   'per_question[0] has correct_index?', sub.parsed?.data?.per_question?.[0]?.correct_index !== undefined);
 
 const full = await j('GET', `/api/enrollments/${enr.parsed.data.id}`);

@@ -67,17 +67,33 @@ for (const r of routes) {
 }
 
 /* ---------------- 3. CSS class usage ---------------- */
-const cssPath = resolve(webSrc, 'styles/components.css');
+// ARCHITECTURE.md §8: lanes add NO new global CSS but MAY ship feature-scoped stylesheets
+// (e.g. features/learn/learn.css, features/automation.css). Collect every stylesheet in the app.
+const globalCssPath = resolve(webSrc, 'styles/components.css');
 const tokensPath = resolve(webSrc, 'styles/tokens.css');
-let cssText = '';
-if (existsSync(cssPath)) cssText += readFileSync(cssPath, 'utf8');
-else failures.push('apps/web/src/styles/components.css is MISSING');
-if (existsSync(tokensPath)) cssText += readFileSync(tokensPath, 'utf8');
+const featureCss = [];
+(function findCss(dir) {
+  if (!existsSync(dir)) return;
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e);
+    if (statSync(p).isDirectory()) findCss(p);
+    else if (e.endsWith('.css') && p !== globalCssPath && p !== tokensPath) featureCss.push(p);
+  }
+})(webSrc);
+
+if (!existsSync(globalCssPath)) failures.push('apps/web/src/styles/components.css is MISSING');
+const globalCss = (existsSync(globalCssPath) ? readFileSync(globalCssPath, 'utf8') : '') +
+  (existsSync(tokensPath) ? readFileSync(tokensPath, 'utf8') : '');
+const scopedCss = featureCss.map((p) => readFileSync(p, 'utf8')).join('\n');
 
 // Collect all defined class selectors.
 const defined = new Set();
-for (const mm of cssText.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) defined.add(mm[1]);
-console.log(`\n=== CSS classes defined in components.css/tokens.css: ${defined.size} ===`);
+for (const mm of globalCss.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) defined.add(mm[1]);
+const definedScoped = new Set();
+for (const mm of scopedCss.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) definedScoped.add(mm[1]);
+
+console.log(`\n=== CSS: ${defined.size} classes in components.css/tokens.css`);
+console.log(`    ${definedScoped.size} classes across ${featureCss.length} feature stylesheet(s): ${featureCss.map((p) => p.slice(root.length + 1).replace(/\\/g, '/')).join(', ')} ===`);
 
 function walk(dir, acc = []) {
   if (!existsSync(dir)) return acc;

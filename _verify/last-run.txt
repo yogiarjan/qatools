@@ -1,51 +1,53 @@
-=== QATools independent E2E — 2026-11-21T16:45:26.553Z ===
-node v24.21.0 | port 5271 | db C:\Users\yogia\AppData\Local\Temp\qatools-e2e-bYB7SJ\e2e.db
+=== QATools independent E2E — 2026-11-21T16:47:31.633Z ===
+node v24.21.0 | port 5271 | db C:\Users\yogia\AppData\Local\Temp\qatools-e2e-Ut4VeU\e2e.db
 
 HEALTH {"status":"ok","db":"ok","version":"0.1.0"}
 MODULES 21/21 registered
 
 PASS  boot: /api/health ok + db ok — status=ok db=ok version=0.1.0  (0ms)
 PASS  boot: all 21 declared modules register — 21/21  (0ms)
-PASS  engine capabilities endpoint responds honestly — {"engines":[{"engine":"manual","available":true,"mode":"recorded","reason":"Selalu tersedia. Eksekusi manual tidak dijalankan server; hasilnya dicatat tester lewat Test Runs (POST /runs/:id/results).","test_cases":0},{"engine":"db","available":true,"mode":"sql  (29ms)
-PASS  create project — id=prj_01M7ZFZAEE24NPFY3G key=E2E  (29ms)
-PASS  create requirement REQ-001 (critical) — id=req_01M7ZFZAF6Q0RVG0WH code=REQ-001 priority=critical  (16ms)
-PASS  create use case UC-001 (+ auto link to requirement) — id=uc_01M7ZFZAFP4TA185FC code=UC-001  (20ms)
-PASS  create scenario SC-001 (happy path) — id=sc_01M7ZFZAGA846JAG4K code=SC-001  (17ms)
-PASS  create scenario SC-002 (negative) — id=sc_01M7ZFZAGV7N0M7Z0N  (14ms)
-PASS  create test case TC-001 (api, regression, critical) — id=tc_01M7ZFZAHAZQHYR10H code=TC-001 engine=api regression=1 risk=70  (17ms)
-PASS  create test case TC-002 (manual, negative) — id=tc_01M7ZFZAHSGD1C8PAC  (13ms)
-PASS  matrix: full chain linked ⇒ covered, arithmetic consistent — reqs=1 covered=1 partial=0 gaps=0 coverage_pct=100 cell=covered tc=2  (5ms)
-PASS  create cycle — id=cyc_01M7ZFZAJB97FJHA7P code=CYC-2026-Q1  (14ms)
-PASS  create sprint in cycle — id=spr_01M7ZFZAJT96QYDH9E code=SPR-01  (13ms)
-PASS  add test case to sprint scope — scope contains TC-001 (1 item)  (16ms)
-PASS  create environment (api_base = this API) — id=env_01M7ZFZAKPTN0216Y4 name=E2E Local  (24ms)
-PASS  create API collection — id=col_01M7ZFZAMDDNVKX23H  (10ms)
-PASS  create API request → GET /api/mock/products (built-in SUT) — id=apr_01M7ZFZAMSTSB264C2 GET /api/mock/products  (8ms)
-PASS  execute API test ⇒ REAL pass with evidence — status=passed assertions=2 evidence={"mode":"http","method":"GET","url":"http://127.0.0.1:5271/api/mock/products","request_headers":{"Accept":"application/json, text/plain, */*"},"request_body":null,"status":200,"response_headers":{"acc  (73ms)
-PASS  create DB connection to scratch sqlite — id=dbcn_01M7ZFZAQBWM72PFG5 dialect=sqlite guard=1  (12ms)
-PASS  execute DB check against scratch sqlite ⇒ pass — id=dbc_01M7ZFZAQQYCNY8W6G status=passed evidence={"dialect":"sqlite","columns":["n"],"rows":[{"n":32}],"row_count":1,"truncated":false,"result_text":"n  \n---\n32 "}  (19ms)
+PASS  engine capabilities endpoint responds honestly — {"engines":[{"engine":"manual","available":true,"mode":"recorded","reason":"Selalu tersedia. Eksekusi manual tidak dijalankan server; hasilnya dicatat tester lewat Test Runs (POST /runs/:id/results).","test_cases":0},{"engine":"db","available":true,"mode":"sql  (32ms)
+PASS  create project — id=prj_01M7ZG3545KA4DZVXM key=E2E  (27ms)
+PASS  create requirement REQ-001 (critical) — id=req_01M7ZG354RMKBK0YYD code=REQ-001 priority=critical  (15ms)
+PASS  create use case UC-001 (+ auto link to requirement) — id=uc_01M7ZG3558TYBCX4CM code=UC-001  (17ms)
+PASS  create scenario SC-001 (happy path) — id=sc_01M7ZG355RYG0N21GM code=SC-001  (14ms)
+PASS  create scenario SC-002 (negative) — id=sc_01M7ZG3566NX3TYE4P  (15ms)
+PASS  create test case TC-001 (api, regression, critical) — id=tc_01M7ZG356PP53PEDXN code=TC-001 engine=api regression=1 risk=70  (18ms)
+PASS  create test case TC-002 (manual, negative) — id=tc_01M7ZG35761RN2M9QR  (15ms)
+PASS  matrix: full chain linked ⇒ covered, arithmetic consistent — reqs=1 covered=1 partial=0 gaps=0 coverage_pct=100 cell=covered tc=2  (7ms)
+PASS  create cycle — id=cyc_01M7ZG357W14ADVNDG code=CYC-2026-Q1  (12ms)
+PASS  create sprint in cycle — id=spr_01M7ZG35891Y1FQDPT code=SPR-01  (14ms)
+PASS  add test case to sprint scope — scope contains TC-001 (1 item)  (15ms)
+PASS  create environment (api_base = this API) — id=env_01M7ZG359506VKM5NB name=E2E Local  (20ms)
+PASS  create API collection — id=col_01M7ZG359SSFFDMDD5  (11ms)
+PASS  create API request → GET /api/mock/products (built-in SUT) — id=apr_01M7ZG35A5P8Q4SVWZ GET /api/mock/products  (9ms)
+PASS  execute API test ⇒ REAL pass with evidence — status=passed assertions=2 evidence={"mode":"http","method":"GET","url":"http://127.0.0.1:5271/api/mock/products","request_headers":{"Accept":"application/json, text/plain, */*"},"request_body":null,"status":200,"response_headers":{"acc  (85ms)
+PASS  create DB connection to scratch sqlite — id=dbcn_01M7ZG35D3MYXWFWXQ dialect=sqlite guard=1  (17ms)
+PASS  execute DB check against scratch sqlite ⇒ pass — id=dbc_01M7ZG35DMZA0B6T4W status=passed evidence={"dialect":"sqlite","columns":["n"],"rows":[{"n":32}],"row_count":1,"truncated":false,"result_text":"n  \n---\n32 "}  (24ms)
 PASS  id prefixes match ARCHITECTURE.md §5.3 — 10 entity ids conform to §5.3  (0ms)
 PASS  AI status reports mode/provider — mode=mock provider=mock configured=false  (3ms)
-PASS  AI generate offline ⇒ used_mock:true and real stub data — used_mock=true provider=mock latency=16ms items=3 sample=[{"priority":"medium","title":"Mengelola data utama aplikasi — jalur utama berhasil","kind":"happy_path","given_text":"Diberikan P  (20ms)
-PASS  create test run — id=run_01M7ZFZAS0SAEFB868 code=RUN-0001  (12ms)
-PASS  record manual run result = failed — id=res_01M7ZFZASCNQ4VZXHR status=failed  (12ms)
-PASS  promote failure → defect (traceable link) — id=bug_01M7ZFZASSYTYQ8FG4 code=BUG-001 linked_tc=tc_01M7ZFZAHSGD1C8PAC run_result=res_01M7ZFZASCNQ4VZXHR  (14ms)
-PASS  regression plan selects high-risk case WITH a reason — selected=2 risk=65/high reason="MASUK — risiko tinggi 65 ≥ ambang 65; anggota tetap suite regresi. Faktor skor: " est={"total_cases":2,"selected_cases":2,"estimated_minutes":15,"automated_share_pct":50,"coverage_of_high_risk_pct":100}  (15ms)
-PASS  metrics: totals match reality and are internally consistent — req=1 uc=1 tc=2(list=2) defects=1 pass_rate=0 req_cov=100% gate=no_go  (12ms)
-PASS  matrix and metrics agree on requirement coverage — both report 100%  (9ms)
-PASS  curriculum seeder runs clean on a scratch DB — stored totals: 9 courses · 32 modules · 101 lessons (90 labs) · 9 quizzes · 52 questions  (0ms)
-FAIL  enroll learner in a seeded course — enroll -> 404 {"error":{"code":"not_found","message":"Route POST /api/courses/crs_01M7ZFZBKHD5NM6QFE/enroll not found"}}  (9ms)
-SKIP  complete all lessons ⇒ progress reaches 100 — requires enrollment
-SKIP  pass quiz with all-correct answers — requires enrollment
-SKIP  issue certificate after completion — requires completed enrollment
-SKIP  verify certificate with real code ⇒ valid — requires certificate
+PASS  AI generate offline ⇒ used_mock:true and real stub data — used_mock=true provider=mock latency=18ms items=3 sample=[{"priority":"medium","title":"Mengelola data utama aplikasi — jalur utama berhasil","kind":"happy_path","given_text":"Diberikan P  (21ms)
+PASS  create test run — id=run_01M7ZG35F5TG413FJH code=RUN-0001  (25ms)
+PASS  record manual run result = failed — id=res_01M7ZG35FZHG6PF1ZK status=failed  (18ms)
+PASS  promote failure → defect (traceable link) — id=bug_01M7ZG35GH59VJ5TWG code=BUG-001 linked_tc=tc_01M7ZG35761RN2M9QR run_result=res_01M7ZG35FZHG6PF1ZK  (22ms)
+PASS  regression plan selects high-risk case WITH a reason — selected=2 risk=65/high reason="MASUK — risiko tinggi 65 ≥ ambang 65; anggota tetap suite regresi. Faktor skor: " est={"total_cases":2,"selected_cases":2,"estimated_minutes":15,"automated_share_pct":50,"coverage_of_high_risk_pct":100}  (22ms)
+PASS  metrics: totals match reality and are internally consistent — req=1 uc=1 tc=2(list=2) defects=1 pass_rate=0 req_cov=100% gate=no_go  (23ms)
+PASS  matrix and metrics agree on requirement coverage — both report 100%  (10ms)
+PASS  curriculum seeder runs clean on a scratch DB — stored totals: 9 courses · 32 modules · 101 lessons (90 labs) · 9 quizzes · 52 questions  (1ms)
+PASS  enroll learner in a seeded course — course=qa-introduction enrollment=enr_01M7ZG36B12DF0W9XP status=201  (15ms)
+PASS  complete all lessons ⇒ progress reaches 100% — 13/13 lessons, progress_pct=100  (104ms)
+PASS  quiz: answer key is NOT exposed by read routes (security) — no answer_index/explanation in public course or quiz payloads  (10ms)
+PASS  pass every quiz in the course (answers submitted, scores recorded) — 1/1 quizzes passed; sample score=100 pass_score=70  (19ms)
+PASS  issue certificate after completion — code=QAT-2026-YBBOPR grade=A score=100 hash=1341e62dbfd9cda9…  (9ms)
+PASS  verify certificate with real code ⇒ valid — valid=true learner=Verifier E2E course=QA Introduction: Fondasi Software Quality Assurance  (3ms)
+PASS  certificate renders standalone HTML — HTML 4741 bytes, self-contained, contains QAT-2026-YBBOPR  (41ms)
 
 --- adversarial / negative testing ---
 PASS  [neg] malformed JSON body ⇒ 4xx not 500 — 400 {"error":{"code":"bad_request","message":"Key project wajib diisi (contoh: SHOP)."}}  (2ms)
-PASS  [neg] missing required field ⇒ 400 + error envelope — 400 {"error":{"code":"bad_request","message":"Key project wajib diisi (contoh: SHOP)."}}  (3ms)
+PASS  [neg] missing required field ⇒ 400 + error envelope — 400 {"error":{"code":"bad_request","message":"Key project wajib diisi (contoh: SHOP)."}}  (4ms)
 PASS  [neg] GET unknown project ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Project tidak ditemukan"}}  (3ms)
-PASS  [neg] GET unknown test case ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Test case tidak ditemukan"}}  (2ms)
-PASS  [neg] GET unknown defect ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Defect tidak ditemukan"}}  (3ms)
+PASS  [neg] GET unknown test case ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Test case tidak ditemukan"}}  (3ms)
+PASS  [neg] GET unknown defect ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Defect tidak ditemukan"}}  (2ms)
 PASS  [neg] GET unknown environment ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Environment tidak ditemukan"}}  (2ms)
 PASS  [neg] GET unknown run ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Test run tidak ditemukan"}}  (2ms)
 PASS  [neg] GET unknown course ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"Kursus tidak ditemukan"}}  (2ms)
@@ -55,16 +57,13 @@ PASS  [neg] GET unknown cycle ⇒ 404 not 500 — 404 {"error":{"code":"not_foun
 PASS  [neg] GET unknown db check ⇒ 404 not 500 — 404 {"error":{"code":"not_found","message":"DB check tidak ditemukan"}}  (2ms)
 PASS  [neg] SQL injection in filters ⇒ no 500, tables survive — 12 attempts, statuses=200, projects still lists 1  (28ms)
 PASS  [neg] readonly_guard blocks destructive SQL — blocked: 400 {"error":{"code":"readonly_guard_violation","message":"Readonly guard menolak eksekusi: Statement \"DROP\" mengubah data/skema dan ditolak oleh readonly_guard. Matikan readonly_guard pada connection b  (10ms)
-FAIL  [neg] certificate refused before completion — enroll failed: 404 {"error":{"code":"not_found","message":"Route POST /api/courses/crs_01M7ZFZBKHD5NM6QFE/enroll not found"}}  (5ms)
-SKIP  [neg] tampered certificate code ⇒ invalid — missing: certCode
+PASS  [neg] certificate refused before completion — refused: 409 {"error":{"code":"conflict","message":"Sertifikat belum bisa diterbitkan: progres kursus baru 0/13 pelajaran (0%). Selesaikan seluruh pelajaran terleb  (14ms)
+PASS  [neg] tampered certificate code ⇒ invalid — rejected (200) {"data":{"valid":false,"reason":"Kode sertifikat tidak ditemukan. Periksa kembali penulisannya."}}  (2ms)
+PASS  [neg] certificate hash detects tampering of an in-scope field — tampering detected: valid=false reason="Data sertifikat tidak cocok dengan sidik verifikasinya. Sertifikat ini kemungkinan telah diubah."  (12ms)
 PASS  [neg] AI with bogus provider degrades, no 500 — 200 ok=true degraded=false used_mock=true provider=mock  (9ms)
-PASS  [neg] execute test case with no artifacts ⇒ clean failure — 200 {"data":{"status":"not_run","engine":"manual","duration_ms":0,"logs":[{"index":0,"action":"manual","status":"info","message":"Test case ini ber-engine \"manual\". Eksekusi manual dicatat melalui Test   (4ms)
-PASS  [neg] list endpoints use {data,total} — 3 conformant  (7ms)
+PASS  [neg] execute test case with no artifacts ⇒ clean failure — 200 {"data":{"status":"not_run","engine":"manual","duration_ms":1,"logs":[{"index":0,"action":"manual","status":"info","message":"Test case ini ber-engine \"manual\". Eksekusi manual dicatat melalui Test   (4ms)
+PASS  [neg] list endpoints use {data,total} — 3 conformant  (9ms)
 PASS  [neg] unknown route ⇒ 404 + error envelope — 404 {"error":{"code":"not_found","message":"Route GET /api/this-route-does-not-exist not found"}}  (2ms)
 
 === SUMMARY ===
-PASS=48 FAIL=2 SKIP=5 TOTAL=55
-
---- FAILURES ---
-  FAIL enroll learner in a seeded course — enroll -> 404 {"error":{"code":"not_found","message":"Route POST /api/courses/crs_01M7ZFZBKHD5NM6QFE/enroll not found"}}
-  FAIL [neg] certificate refused before completion — enroll failed: 404 {"error":{"code":"not_found","message":"Route POST /api/courses/crs_01M7ZFZBKHD5NM6QFE/enroll not found"}}
+PASS=58 FAIL=0 SKIP=0 TOTAL=58
