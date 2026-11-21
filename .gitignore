@@ -15,3 +15,5 @@ _cmsg.txt
 _v.log
 _v.err
 _scratch_*.mjs
+_verify/.chrome-profile/
+_verify/.chrome-debug/

@@ -22,12 +22,25 @@ const PROJECT_STATUSES = ['active', 'on_hold', 'archived'] as const;
 
 function str(v: unknown): string | null {
   if (v === null || v === undefined) return null;
+  // Reject non-scalars instead of coercing them into "[object Object]".
+  if (typeof v === 'object' || typeof v === 'function' || typeof v === 'symbol') return null;
   const s = String(v).trim();
   return s === '' ? null : s;
 }
 
 function normaliseKey(raw: string): string {
   return raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
+}
+
+/**
+ * True when a value contains control characters (NUL, BEL, ESC, DEL…).
+ * These were previously stripped from `key` by the sanitiser but silently persisted in
+ * `name`, which is inconsistent — so both are rejected rather than half-sanitised.
+ */
+function hasControlChars(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  // eslint-disable-next-line no-control-regex
+  return /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value);
 }
 
 export default async function routes(app: FastifyInstance): Promise<void> {
@@ -47,7 +60,24 @@ export default async function routes(app: FastifyInstance): Promise<void> {
   /* --------------------------------- create -------------------------------- */
   app.post('/projects', async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const key = normaliseKey(String(body.key ?? ''));
+
+    // Reject wrong JSON types explicitly rather than coercing them (a JSON object is not a key).
+    if (body.key !== undefined && body.key !== null && typeof body.key !== 'string') {
+      return badRequest(reply, 'Field "key" harus berupa teks.', { field: 'key', received: typeof body.key });
+    }
+    if (body.name !== undefined && body.name !== null && typeof body.name !== 'string') {
+      return badRequest(reply, 'Field "name" harus berupa teks.', { field: 'name', received: typeof body.name });
+    }
+
+    const keyRaw = body.key ?? '';
+    if (hasControlChars(keyRaw)) {
+      return badRequest(reply, 'Field "key" mengandung karakter kontrol.', { field: 'key' });
+    }
+    if (hasControlChars(body.name)) {
+      return badRequest(reply, 'Field "name" mengandung karakter kontrol.', { field: 'name' });
+    }
+
+    const key = normaliseKey(String(keyRaw));
     const name = str(body.name);
 
     if (!key) return badRequest(reply, 'Key project wajib diisi (contoh: SHOP).');
