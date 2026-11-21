@@ -13,13 +13,12 @@
  *       through the optional `seedCurriculum()` export, guarded by try/catch.
  */
 
-import { db, migrate, parseJson, toJson, nextCode, logActivity } from '../db/index.js';
-import {
-  newId,
-  nowIso,
-  riskScore,
-  type Priority,
-} from '@qatools/shared';
+import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { db, migrate, toJson, nextCode, logActivity } from '../db/index.js';
+import { newId, nowIso, riskScore, type Priority } from '@qatools/shared';
 
 const PROJECT_KEY = 'DEMO-QA';
 
@@ -1600,7 +1599,12 @@ function seedRunsAndDefects(
   const defectIds: string[] = [];
   defectSeed.forEach((d, i) => {
     const id = newId('bug_');
-    const tcId = testCaseIds[d.tcIndex] ?? null;
+    // Only reference the test case if the id actually exists — a dangling FK would abort the seed.
+    const candidateTc = testCaseIds[d.tcIndex] ?? null;
+    const tcExists =
+      candidateTc &&
+      db.prepare('SELECT 1 AS ok FROM test_cases WHERE id = ?').get(candidateTc) !== undefined;
+    const tcId = tcExists ? candidateTc : null;
     const row = db.prepare('SELECT title, objective FROM test_cases WHERE id = ?').get(tcId ?? '') as
       | { title: string; objective: string }
       | undefined;
@@ -1629,13 +1633,14 @@ function seedRunsAndDefects(
       d.status,
       d.source,
       tcId,
+      // run_result_id -> NULL in SQL (defects are linked to a test case, not one result row)
       environmentId,
       i % 2 === 0 ? 'Bagus (Dev)' : 'Rina (Dev)',
       'Yogi (Lead QA)',
       cycleId,
       d.status === 'verified' ? 'v1.0.0-rc1' : null,
       d.escaped ? 1 : 0,
-      null,
+      // ai_triage -> NULL in SQL
       d.status === 'verified' ? iso(createdAt) : null,
       iso(createdAt),
       ts,
@@ -1678,7 +1683,6 @@ function seedActivity(projectId: string): void {
  * point at, so the demo has a REAL database target without any extra setup.
  */
 function createSampleDatabase(): string {
-  const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
   const path = resolveDataPath('qatools-demo-sample.db');
   const sample = new DatabaseSync(path);
 
@@ -1749,8 +1753,6 @@ function createSampleDatabase(): string {
 
 function resolveDataPath(file: string): string {
   const apiRoot = fileURLToPath(new URL('../../', import.meta.url)); // apps/api/
-  const { mkdirSync } = require('node:fs') as typeof import('node:fs');
-  const { dirname, resolve } = require('node:path') as typeof import('node:path');
   const full = resolve(apiRoot, 'data', file);
   mkdirSync(dirname(full), { recursive: true });
   return full;
@@ -1870,10 +1872,13 @@ export function seedDemoProject(): DemoSeedResult {
   return { projectId, counts, sampleDbPath };
 }
 
-/* Optional: also seed the curriculum if lane-learn's seeder is present. */
+/* Optional: also seed the curriculum if lane-learn's seeder is present.
+ * The module specifier is built at runtime so a missing file is a catchable error
+ * rather than a compile-time/resolution-time failure. */
 async function maybeSeedCurriculum(): Promise<string> {
+  const specifier = './curriculum.js';
   try {
-    const mod = (await import('./curriculum.js')) as { seedCurriculum?: () => unknown };
+    const mod = (await import(/* @vite-ignore */ specifier)) as { seedCurriculum?: () => unknown };
     if (typeof mod.seedCurriculum === 'function') {
       mod.seedCurriculum();
       return 'curriculum seeded (via src/seed/curriculum.ts)';

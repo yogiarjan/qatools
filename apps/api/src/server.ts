@@ -102,12 +102,13 @@ export async function buildApp(opts: { logger?: boolean } = {}): Promise<Fastify
     });
   });
 
-  app.setErrorHandler((err, _req, reply) => {
-    const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500;
+  app.setErrorHandler((err: unknown, _req, reply) => {
+    const e = err as { statusCode?: number; code?: string; message?: string };
+    const status = typeof e.statusCode === 'number' && e.statusCode >= 400 ? e.statusCode : 500;
     reply.code(status).send({
       error: {
-        code: (err as { code?: string }).code ?? 'internal_error',
-        message: err.message || 'Internal Server Error',
+        code: e.code ?? 'internal_error',
+        message: e.message || 'Internal Server Error',
       },
     });
   });
