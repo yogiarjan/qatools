@@ -14,6 +14,13 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { newId, nowIso } from '@qatools/shared';
 
+/**
+ * Re-exported for convenience: many modules legitimately need id/time helpers alongside
+ * `db`. Keeping them here means `import { db, newId, nowIso } from '../../db/index.js'` works,
+ * while `@qatools/shared` remains the canonical source for everything else.
+ */
+export { newId, nowIso };
+
 const here = dirname(fileURLToPath(import.meta.url));
 
 /** apps/api/data/qatools.db by default; override with QATOOLS_DB. */
@@ -51,7 +58,10 @@ class Db {
   } {
     const stmt: StatementSync = this.raw.prepare(sql);
     return {
-      all: (...params: unknown[]) => flatten(stmt.all(...(params as never[]))) as Record<string, unknown>[],
+      // IMPORTANT: map over the ARRAY (normalising each row), never flatten the array itself —
+      // doing the latter turns the returned array into an object with numeric keys.
+      all: (...params: unknown[]) =>
+        (stmt.all(...(params as never[])) as unknown[]).map(flatten) as Record<string, unknown>[],
       get: (...params: unknown[]) =>
         flattenOne(stmt.get(...(params as never[]))) as Record<string, unknown> | undefined,
       run: (...params: unknown[]) => {
@@ -82,9 +92,13 @@ class Db {
   }
 }
 
-/** node:sqlite returns null-prototype objects; normalise to plain objects. */
+/**
+ * node:sqlite returns null-prototype row objects; normalise ONE row to a plain object.
+ * Never call this on an array — it would destroy the array shape (see `prepare().all`).
+ */
 function flatten(row: unknown): unknown {
   if (row === null || row === undefined) return row;
+  if (Array.isArray(row)) return row.map(flatten);
   return Object.assign({}, row as object);
 }
 function flattenOne(row: unknown): unknown {
