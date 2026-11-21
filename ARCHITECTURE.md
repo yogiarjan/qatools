@@ -1,8 +1,13 @@
-# QATools — Architecture & Lane Contract (v1.1)
+# QATools — Architecture & Lane Contract (v1.2)
 
 > **This file is the binding contract between parallel workstreams. Do not change shared shapes
 > without telling the Lead.** Anything marked **[FROZEN]** is owned by the Lead and must not be
 > edited by lane owners.
+>
+> **Changelog v1.2** (automation codegen + AI agent pool):
+> - §11 — new: framework code generation (`codegen` module) and the multi-worker AI agent
+>   pool (`agents` module). Shared types are frozen in `packages/shared/src/automation.ts`.
+> - New tables: `generated_projects`, `pool_runs`.
 >
 > **Changelog v1.1** (all three raised by independent verification):
 > - §5.3 — corrected the id-prefix table: `dbc_` = db_checks, `db_connections` = `dbcn_`.
@@ -285,3 +290,97 @@ block. Tell the Lead what you stubbed.
 - **UI copy: Bahasa Indonesia** (the product serves Indonesian QA learners/professionals).
 - **Code identifiers, comments, commit messages, docs/ADRs: English**, except user-facing docs which
   may be Indonesian. Mixed is fine in `docs/`.
+
+---
+
+## 11. [FROZEN v1.2] Automation codegen + multi-worker AI agent pool
+
+Shared types for both features live in `packages/shared/src/automation.ts` and are **frozen**.
+
+### 11.1 Ownership
+
+| Area | Owner | Write scope |
+|---|---|---|
+| framework code generation | `lane-codegen` | `apps/api/src/modules/codegen/**`, `apps/web/src/features/codegen/**`, `docs/codegen/**` |
+| multi-worker AI agent pool | `lane-agents` | `apps/api/src/modules/agents/**`, `apps/web/src/features/agents/**`, `docs/agents/**` |
+
+Lead owns `server.ts`, `App.tsx`, `schema.sql`, `packages/shared/**` and the two integration files below.
+
+### 11.2 Service surface (in-process, callable by other lanes)
+
+| Module | Exported symbol | Consumed by |
+|---|---|---|
+| `codegen` | `codegenService.generate(req, projectId): Promise<GeneratedProject>` | web UI, AI Studio |
+| `codegen` | `codegenService.frameworks(): FrameworkMeta[]` | web UI |
+| `agents` | `agentPoolService.run(projectId, testCaseIds, config): Promise<AgentPoolResult>` | web UI, regression page |
+
+`agents` **must** execute cases through Lane C's `executeService.runCase()` — imported
+**dynamically inside the handler** (`await import('../execute/index.js')`) with a graceful
+fallback, never a top-level import (a missing module must not break boot).
+
+`agents` may call Lane D's `aiService` (`await import('../ai/index.js')`) for worker naming,
+selector healing and failure triage. All AI use must degrade to a deterministic offline
+result when no key is configured; `ai_used` must honestly report whether a live model ran.
+
+### 11.3 Rules both lanes must follow
+
+1. **No new npm dependency.** Generated *code* may reference Playwright/Robot/etc., but the
+   QATools repo itself must never depend on them — codegen is pure string generation.
+   `pnpm install` must stay C-toolchain-free and offline-friendly.
+2. **Generated code must be genuinely runnable**, not pseudocode. Each generator emits a
+   complete project: entry tests, config, dependency manifest, and a README with the exact
+   install + run commands (`FRAMEWORK_META` already carries `installCommand`/`runCommand`).
+3. **Parallelism in the pool must be real** — actual concurrent async execution with a
+   concurrency limit, not a sequential loop with a `workers` label. Report `speedup`
+   (`sequential_duration_ms / duration_ms`) so the benefit is measurable, and never inflate it.
+4. **Honest reporting.** `warnings[]` on a generated project must list artifacts that could
+   not be converted and why. The pool must distinguish `failed` from `flaky` (a case that
+   failed then passed on retry is **flaky**, not passed) — this is the core value of retries.
+5. Every generated file carries a `purpose` string; the UI must show it.
+
+### 11.4 New tables (already in schema.sql — do not write DDL)
+
+- `generated_projects` — one row per codegen run (`files`, `readme`, `summary`, `warnings` as JSON).
+- `pool_runs` — one row per agent-pool execution (`config`, `shards`, `outcomes` as JSON;
+  plus rolled-up counters and `speedup`).
+
+### 11.5 API routes
+
+`codegen` (mounted at `/api`):
+```
+GET  /codegen/frameworks                     -> FrameworkMeta[]
+POST /projects/:projectId/codegen            -> GeneratedProject   (body: CodegenRequest)
+GET  /projects/:projectId/codegen            -> GeneratedProjectMeta[]
+GET  /codegen/:id                            -> GeneratedProject
+GET  /codegen/:id/file?path=...              -> text/plain raw file
+GET  /codegen/:id/download                   -> application/zip (build the zip by hand; no archiver dep)
+DELETE /codegen/:id
+```
+
+`agents` (mounted at `/api`):
+```
+GET  /agents/capabilities                    -> { strategies, defaults, ai: AiStatus, max_workers }
+POST /projects/:projectId/agents/plan        -> { shards: PoolShard[], estimates }  (dry run, no execution)
+POST /projects/:projectId/agents/run         -> AgentPoolResult
+GET  /projects/:projectId/agents/runs        -> PoolRunMeta[]
+GET  /agents/runs/:id                        -> AgentPoolResult (rehydrated from the row)
+POST /agents/heal                            -> HealResult (body: HealRequest)
+```
+
+### 11.6 Web pages (exact paths — the Lead wires them in `App.tsx`)
+
+```
+apps/web/src/features/codegen/CodegenPage.tsx   -> /codegen
+apps/web/src/features/agents/AgentPoolPage.tsx  -> /agents
+```
+
+### 11.7 Definition of Done (both lanes)
+
+Same as §9, **plus**:
+- `codegen`: a test that generates every `CODEGEN_FRAMEWORKS` entry from a fixture and asserts
+  the output is non-trivial (expected files present, no `undefined`/`[object Object]`/`TODO`
+  placeholders in emitted code), and that the generated content for at least Playwright and
+  Robot Framework contains the artifact's real title and URL.
+- `agents`: a test proving the pool is **actually parallel** (wall-clock for N workers with a
+  simulated delay is materially less than sequential), that `speedup > 1`, that a fail-then-pass
+  case is reported `flaky` and **not** `passed`, and that `workers: 1` equals sequential.

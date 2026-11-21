@@ -287,8 +287,11 @@ export function newId(prefix: string): string {
   }
   let rand = '';
   const bytes = new Uint8Array(8);
-  if (typeof globalThis.crypto?.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(bytes);
+  // `crypto` is global in Node 18+ and in browsers, but not present in the ES2022 lib types,
+  // so narrow it through a local alias rather than indexing globalThis.
+  const webCrypto = (globalThis as { crypto?: { getRandomValues?: (b: Uint8Array) => void } }).crypto;
+  if (typeof webCrypto?.getRandomValues === 'function') {
+    webCrypto.getRandomValues(bytes);
   } else {
     for (let i = 0; i < 8; i++) bytes[i] = Math.floor(Math.random() * 256);
   }

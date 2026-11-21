@@ -565,3 +565,51 @@ CREATE TABLE IF NOT EXISTS activity_log (
   created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_act_project ON activity_log(project_id, created_at);
+
+-- ------------------------------------------- generated automation projects
+-- A codegen run: QATools artifacts compiled into a runnable project for an
+-- external framework (Playwright, Robot Framework, pytest, …).
+CREATE TABLE IF NOT EXISTS generated_projects (
+  id           TEXT PRIMARY KEY,
+  project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  framework    TEXT NOT NULL,
+  language     TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  files        TEXT NOT NULL,          -- JSON GeneratedFile[]
+  readme       TEXT,
+  summary      TEXT,                   -- JSON summary object
+  warnings     TEXT,                   -- JSON string[]
+  generated_by TEXT NOT NULL DEFAULT 'template',
+  created_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_genproj_project ON generated_projects(project_id, created_at);
+
+-- ------------------------------------------------- AI agent pool run records
+-- One row per multi-worker regression execution (the "spawn QA agents" feature).
+CREATE TABLE IF NOT EXISTS pool_runs (
+  id           TEXT PRIMARY KEY,
+  project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  run_id       TEXT,                   -- links to test_runs
+  name         TEXT NOT NULL,
+  workers      INTEGER NOT NULL DEFAULT 1,
+  strategy     TEXT NOT NULL DEFAULT 'risk_weighted',
+  config       TEXT,                   -- JSON AgentPoolConfig
+  status       TEXT NOT NULL DEFAULT 'running',
+  total        INTEGER NOT NULL DEFAULT 0,
+  passed       INTEGER NOT NULL DEFAULT 0,
+  failed       INTEGER NOT NULL DEFAULT 0,
+  blocked      INTEGER NOT NULL DEFAULT 0,
+  skipped      INTEGER NOT NULL DEFAULT 0,
+  flaky        INTEGER NOT NULL DEFAULT 0,
+  healed       INTEGER NOT NULL DEFAULT 0,
+  retried      INTEGER NOT NULL DEFAULT 0,
+  duration_ms  INTEGER NOT NULL DEFAULT 0,
+  sequential_duration_ms INTEGER NOT NULL DEFAULT 0,
+  speedup      REAL NOT NULL DEFAULT 0,
+  ai_used      INTEGER NOT NULL DEFAULT 0,
+  shards       TEXT,                   -- JSON PoolShard[]
+  outcomes     TEXT,                   -- JSON PoolCaseOutcome[]
+  ai_summary   TEXT,
+  created_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pool_project ON pool_runs(project_id, created_at);

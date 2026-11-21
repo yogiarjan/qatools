@@ -39,6 +39,9 @@ import ExecutePage from './features/execute/ExecutePage';
 // Lane D — AI
 import AiStudioPage from './features/ai/AiStudioPage';
 import AiSettingsPage from './features/ai/AiSettingsPage';
+// Lane F/G — automation codegen + agent pool (v1.2)
+import CodegenPage from './features/codegen/CodegenPage';
+import AgentPoolPage from './features/agents/AgentPoolPage';
 // Lane E — learning
 import CurriculumPage from './features/learn/CurriculumPage';
 import CoursePage from './features/learn/CoursePage';
@@ -97,6 +100,8 @@ const NAV: NavDef[] = [
       { to: '/api-tester', label: 'API Automation', icon: '🔌' },
       { to: '/db-tester', label: 'Database Testing', icon: '🗄️' },
       { to: '/web-tester', label: 'Web Automation', icon: '🌐' },
+      { to: '/codegen', label: 'Code Generator', icon: '🏗️' },
+      { to: '/agents', label: 'AI Agent Pool', icon: '🤖' },
     ],
   },
   {
@@ -315,6 +320,8 @@ export default function App() {
             <Route path="/api-tester" element={<Page needProject><ApiTesterPage /></Page>} />
             <Route path="/db-tester" element={<Page needProject><DbTesterPage /></Page>} />
             <Route path="/web-tester" element={<Page needProject><WebTesterPage /></Page>} />
+            <Route path="/codegen" element={<Page needProject><CodegenPage /></Page>} />
+            <Route path="/agents" element={<Page needProject><AgentPoolPage /></Page>} />
 
             <Route path="/defects" element={<Page needProject><DefectsPage /></Page>} />
             <Route path="/regression" element={<Page needProject><RegressionPage /></Page>} />

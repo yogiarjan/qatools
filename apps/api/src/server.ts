@@ -44,6 +44,9 @@ const MODULE_ROUTES: Array<{ name: string; path: string }> = [
   // Lane E — learning
   { name: 'courses', path: './modules/courses/index.js' },
   { name: 'certificates', path: './modules/certificates/index.js' },
+  // Lane F/G — automation codegen + multi-worker AI agent pool (v1.2)
+  { name: 'codegen', path: './modules/codegen/index.js' },
+  { name: 'agents', path: './modules/agents/index.js' },
 ];
 
 export async function buildApp(opts: { logger?: boolean } = {}): Promise<FastifyInstance> {

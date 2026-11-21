@@ -8,3 +8,4 @@
 export * from './domain.js';
 export * from './entities.js';
 export * from './contracts.js';
+export * from './automation.js';
