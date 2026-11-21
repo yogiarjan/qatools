@@ -1,0 +1,416 @@
+/**
+ * AI Agent Pool page styles — Lane G.
+ *
+ * Every rule is scoped under the `ap-` prefix so nothing here leaks into the
+ * global stylesheet. Only design tokens from tokens.css are used.
+ */
+
+/* ------------------------------- spacing -------------------------------- */
+
+.ap-mb {
+  margin-bottom: var(--space-4);
+}
+.ap-mt {
+  margin-top: var(--space-3);
+}
+
+/* ------------------------------- notes ---------------------------------- */
+
+.ap-note {
+  border-left: 3px solid var(--accent);
+  background: var(--bg-elev);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  margin-bottom: var(--space-2);
+}
+.ap-note-warn {
+  border-left-color: var(--warn);
+}
+.ap-note-info {
+  border-left-color: var(--info);
+}
+.ap-notes {
+  margin-top: var(--space-3);
+}
+.ap-hint {
+  font-size: 0.83rem;
+  color: var(--text-dim);
+  margin: var(--space-1) 0 0;
+  line-height: 1.5;
+}
+.ap-narrative {
+  line-height: 1.7;
+  font-size: 0.94rem;
+}
+.ap-err {
+  color: var(--err);
+  word-break: break-word;
+}
+
+/* ------------------------------ config ---------------------------------- */
+
+.ap-config {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.6fr);
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+@media (max-width: 900px) {
+  .ap-config {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
+.ap-slider .label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.ap-workers-chip {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+.ap-range {
+  width: 100%;
+  margin: var(--space-2) 0 var(--space-1);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---------------------------- strategy picker --------------------------- */
+
+.ap-strategy-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.ap-strategy-item {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+.ap-strategy-item:hover {
+  border-color: var(--accent);
+}
+.ap-strategy-item.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+.ap-strategy-label {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+.ap-check {
+  color: var(--accent);
+}
+.ap-strategy-desc {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+/* ------------------------------ inputs ---------------------------------- */
+
+.ap-grid-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.ap-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-2);
+}
+.ap-toggle {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+}
+.ap-toggle-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.ap-toggle-hint {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.ap-active-strategy {
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* --------------------------- shard allocation --------------------------- */
+
+.ap-alloc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-2);
+}
+.ap-alloc-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) 2fr 70px 90px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.ap-alloc-head {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.ap-alloc-head span:nth-child(2) {
+  grid-column: 2 / 4;
+}
+.ap-alloc-agent {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+.ap-alloc-bar-wrap {
+  height: 10px;
+  background: var(--bg-elev);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.ap-alloc-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.3s ease;
+}
+.ap-alloc-num {
+  text-align: right;
+  font-size: 0.82rem;
+}
+
+/* ------------------------------ shard cards ----------------------------- */
+
+.ap-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-2);
+}
+
+.ap-shard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: var(--space-3);
+}
+.ap-shard {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--surface);
+}
+.ap-shard-done {
+  border-left-color: var(--ok);
+}
+.ap-shard-failed {
+  border-left-color: var(--err);
+}
+.ap-shard-aborted {
+  border-left-color: var(--warn);
+  opacity: 0.9;
+}
+.ap-shard-running,
+.ap-shard-pending {
+  border-left-color: var(--info);
+}
+
+.ap-agent {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+.ap-agent-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
+.ap-dot-done {
+  background: var(--ok);
+}
+.ap-dot-failed {
+  background: var(--err);
+}
+.ap-dot-aborted {
+  background: var(--warn);
+}
+.ap-dot-running {
+  background: var(--info);
+}
+.ap-agent-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+.ap-agent-role {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  line-height: 1.3;
+}
+
+.ap-shard-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.ap-count {
+  font-size: 0.77rem;
+  font-family: var(--mono);
+}
+.ap-count-ok {
+  color: var(--ok);
+}
+.ap-count-err {
+  color: var(--err);
+}
+.ap-count-warn {
+  color: var(--warn);
+}
+.ap-count-info {
+  color: var(--info);
+}
+
+.ap-shard-notes {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ------------------------------- speedup -------------------------------- */
+
+.ap-speedup {
+  display: grid;
+  grid-template-columns: minmax(170px, auto) 1fr;
+  gap: var(--space-5);
+  align-items: center;
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+@media (max-width: 760px) {
+  .ap-speedup {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+.ap-speedup-main {
+  text-align: center;
+}
+.ap-speedup-value {
+  display: block;
+  font-size: 2.9rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ap-speedup-label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-top: var(--space-1);
+}
+.ap-speedup-math {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+}
+.ap-speedup-math > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.ap-math-key {
+  color: var(--text-dim);
+}
+.ap-math-val {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+.ap-math-formula {
+  display: block !important;
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--border);
+  font-family: var(--mono);
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+
+/* --------------------------- healing playground ------------------------- */
+
+.ap-heal-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 2fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .ap-heal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.ap-heal-html {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  resize: vertical;
+  width: 100%;
+}
+.ap-heal-result {
+  margin-top: var(--space-4);
+}
+.ap-heal-sel {
+  word-break: break-all;
+}
