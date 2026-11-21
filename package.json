@@ -1,0 +1,24 @@
+{
+  "name": "qatools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "QATools — an end-to-end, AI-assisted Software Quality Assurance platform: use-case & scenario authoring, digital traceability matrix, QA project management, regression (king of the test), manual/DB/API/web automation, and QA learning + e-certificate.",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"pnpm -F @qatools/api dev\" \"pnpm -F @qatools/web dev\"",
+    "build": "pnpm -F @qatools/api build && pnpm -F @qatools/web build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -F @qatools/api test",
+    "qa:smoke": "node scripts/smoke.mjs",
+    "seed": "pnpm -F @qatools/api seed",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  }
+}
