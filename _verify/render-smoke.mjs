@@ -153,6 +153,8 @@ const ROUTES = [
   ['/api-tester', 'API'],
   ['/db-tester', 'Database'],
   ['/web-tester', 'Web'],
+  ['/codegen', 'Code Generator'],
+  ['/agents', 'Agent'],
   ['/defects', 'Defect'],
   ['/regression', 'Regresi'],
   ['/metrics', 'QA Metrics'],

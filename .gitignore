@@ -17,3 +17,5 @@ _v.err
 _scratch_*.mjs
 _verify/.chrome-profile/
 _verify/.chrome-debug/
+apps/api/_*.mts
+apps/api/_*.mjs

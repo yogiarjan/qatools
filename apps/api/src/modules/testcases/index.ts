@@ -6,7 +6,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { db, logActivity, parseJson, toJson } from '../../db/index.js';
-import { list, one, badRequest, notFound } from '../../lib/http.js';
+import { list, one, badRequest, notFound, paging } from '../../lib/http.js';
 import {
   AUTOMATION_STATUSES,
   CASE_TYPES,
@@ -128,6 +128,61 @@ export default async function routes(app: FastifyInstance): Promise<void> {
     Boolean(db.prepare('SELECT id FROM projects WHERE id = ?').get(id));
 
   /* ---------------------------------- list --------------------------------- */
+  /**
+   * Flat collection route: `GET /testcases?project_id=…`.
+   *
+   * Several UI pages (Run Center, Regression, Agent Pool, Codegen) need a case picker and
+   * call this flat path. It resolved to nothing before, and because callers wrapped it in
+   * `.catch(() => [])` the pickers were silently EMPTY rather than erroring — a bug the
+   * render smoke test caught. Kept alongside the project-scoped route for compatibility.
+   */
+  app.get('/testcases', async (req) => {
+    const query = req.query as Record<string, unknown>;
+    const projectId = typeof query.project_id === 'string' ? query.project_id : '';
+    const { limit, offset } = paging(query, 2000);
+
+    const regressionRaw = query.regression ?? query.is_regression;
+    const is_regression =
+      regressionRaw === undefined || regressionRaw === ''
+        ? undefined
+        : String(regressionRaw) === 'true' || String(regressionRaw) === '1';
+
+    const filters = {
+      type: typeof query.type === 'string' ? query.type : undefined,
+      layer: typeof query.layer === 'string' ? query.layer : undefined,
+      priority: typeof query.priority === 'string' ? query.priority : undefined,
+      engine: typeof query.engine === 'string' ? query.engine : undefined,
+      automation_status:
+        typeof query.automation_status === 'string' ? query.automation_status : undefined,
+      scenario_id: typeof query.scenario_id === 'string' ? query.scenario_id : undefined,
+      use_case_id: typeof query.use_case_id === 'string' ? query.use_case_id : undefined,
+      is_regression,
+      q: typeof query.q === 'string' ? query.q : undefined,
+    };
+
+    // With no project_id, return cases across every project so global pickers still work.
+    const projectIds = projectId
+      ? [projectId]
+      : (
+          db.prepare('SELECT id FROM projects ORDER BY created_at').all() as Array<{ id: string }>
+        ).map((r) => r.id);
+
+    const rows = projectIds.flatMap((pid) => listTestCases(pid, filters));
+    const page = rows.slice(offset, offset + limit);
+
+    const scStmt = db.prepare('SELECT id, code, title FROM scenarios WHERE id = ?');
+    const ucStmt = db.prepare('SELECT id, code, name FROM use_cases WHERE id = ?');
+
+    return list(
+      page.map((tc) => ({
+        ...decorate(tc as unknown as Record<string, unknown>),
+        scenario: tc.scenario_id ? scStmt.get(tc.scenario_id) : null,
+        use_case: tc.use_case_id ? ucStmt.get(tc.use_case_id) : null,
+      })),
+      rows.length,
+    );
+  });
+
   app.get('/projects/:projectId/testcases', async (req, reply) => {
     const { projectId } = req.params as { projectId: string };
     if (!projectExists(projectId)) return notFound(reply, 'Project');
