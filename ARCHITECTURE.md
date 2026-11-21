@@ -24,7 +24,7 @@ learners who completed the training track.
 ```
 qatools/
 ├─ apps/
-│  ├─ api/            @qatools/api    — Fastify + better-sqlite3 + TypeScript  (OWNS ALL PERSISTENCE)
+│  ├─ api/            @qatools/api    — Fastify + node:sqlite + TypeScript  (OWNS ALL PERSISTENCE)
 │  └─ web/            @qatools/web    — React 18 + Vite + TypeScript SPA       (ALL UI)
 ├─ packages/
 │  └─ shared/         @qatools/shared — FROZEN domain vocabulary: types, enums, labels, zod schemas
@@ -52,8 +52,10 @@ lanes export a route plugin / page component and tell the Lead, who wires it.
 
 - **Node** ≥ 20 ESM everywhere (`"type": "module"`).
 - **API**: Fastify 4, TypeScript run through `tsx` in dev; `tsc` build to `dist/`.
-- **DB**: `better-sqlite3` (synchronous, native). Single file at `apps/api/data/qatools.db`
-  (override with `QATOOLS_DB` env). WAL mode on.
+- **DB**: Node's **built-in `node:sqlite`** (`DatabaseSync`, Node ≥ 22) — synchronous and part of the
+  runtime, so there is **no native module to compile** and `pnpm install` works on a machine without
+  MSVC/Clang. Single file at `apps/api/data/qatools.db` (override with `QATOOLS_DB` env). WAL mode on.
+  Accessed through the thin facade in `apps/api/src/db/index.ts`.
 - **Shared domain vocabulary**: `@qatools/shared` — types, enums, labels, zodiac-free plain TS.
 - **Web**: React 18 + Vite 5 + TypeScript + React Router 6. **No Tailwind, no component library** —
   hand-written CSS using the **design tokens** in `apps/web/src/styles/tokens.css` (lead-owned).
@@ -218,7 +220,7 @@ Lanes must expose these so other lanes can call them **in-process** rather than 
 | A | `matrixService.impactOf(artifactId): Promise<ImpactReport>` | `apps/api/src/modules/matrix/index.ts` | B, C |
 | B | `metricsService.snapshot(projectId): Promise<MetricsSnapshot>` | `apps/api/src/modules/metrics/index.ts` | A, C, E |
 | B | `regressionService.selectSuite(projectId, opts): Promise<RegressionPlan>` | `apps/api/src/modules/regression/index.ts` | C |
-| foundation | `db` (better-sqlite3 handle) | `apps/api/src/db/index.ts` | all |
+| foundation | `db` (node:sqlite facade) | `apps/api/src/db/index.ts` | all |
 
 If a dependency is not ready yet, **code against the interface and use a local fallback**; never
 block. Tell the Lead what you stubbed.

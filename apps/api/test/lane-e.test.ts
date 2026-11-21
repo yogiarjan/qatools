@@ -130,7 +130,19 @@ before(async () => {
 
 after(async () => {
   await app?.close();
-  rmSync(scratch, { recursive: true, force: true });
+  // Windows keeps a lock on the -wal/-shm files until the connection is closed, so close the
+  // database before removing the scratch directory. Cleanup is best-effort: a leftover temp
+  // directory must never fail the suite.
+  try {
+    db.raw.close();
+  } catch {
+    /* already closed */
+  }
+  try {
+    rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch {
+    /* the OS will reap the temp directory */
+  }
 });
 
 /* ================================================================== *

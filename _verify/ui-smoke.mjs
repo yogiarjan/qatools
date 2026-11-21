@@ -150,7 +150,7 @@ for (const f of codeFiles) {
 console.log(`=== distinct CSS classes referenced in UI code: ${usedClasses.size} ===`);
 const unknownClasses = [];
 for (const [cls, file] of usedClasses) {
-  if (defined.has(cls)) continue;
+  if (defined.has(cls) || definedScoped.has(cls)) continue;
   // Feature-scoped custom prefixes are allowed by ARCHITECTURE.md §8 (e.g. .uc-, .tc-).
   if (/^[a-z]{2,4}-/.test(cls)) {
     notes.push(`prefix-scoped class .${cls} (${file}) — allowed by §8 if defined in a scoped stylesheet`);
@@ -159,11 +159,11 @@ for (const [cls, file] of usedClasses) {
   unknownClasses.push(`.${cls} used in ${file}`);
 }
 if (unknownClasses.length) {
-  console.log(`\n  UNKNOWN GLOBAL CLASSES (${unknownClasses.length}):`);
+  console.log(`\n  UNKNOWN CLASSES (${unknownClasses.length}) — not in components.css/tokens.css or any feature stylesheet:`);
   for (const u of unknownClasses.slice(0, 60)) console.log(`    ${u}`);
-  failures.push(`${unknownClasses.length} unknown global CSS classes`);
+  failures.push(`${unknownClasses.length} unknown CSS classes`);
 } else {
-  console.log('  all referenced global classes are defined');
+  console.log('  every referenced class resolves to a real stylesheet rule');
 }
 
 /* ---------------- summary ---------------- */

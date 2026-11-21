@@ -49,6 +49,12 @@ function totals(projectId: string): MetricsSnapshot['totals'] {
       "SELECT COUNT(*) AS n FROM test_cases WHERE project_id = ? AND status <> 'deprecated'",
       projectId,
     ),
+    /**
+     * NOTE: this uses the broader TestCase-contract reading (an `api`/`web`/`db` engine counts,
+     * even before the case is formally automated). It is a *count of cases with an automation
+     * path*, NOT the coverage-family `automation_pct`, which is delegated to the matrix and uses
+     * `automation_status = 'automated'`. Do not conflate the two (docs §6.1).
+     */
     automated: scalar(
       `SELECT COUNT(*) AS n FROM test_cases
         WHERE project_id = ? AND status <> 'deprecated'
@@ -155,6 +161,28 @@ function requirementCoverageLocal(projectId: string, summary?: MatrixSummary | n
     return pct(summary.covered + summary.partial, summary.requirements);
   }
   return pct(covered, total);
+}
+
+/**
+ * Local fallback for `automation_pct`, used ONLY when lane A's matrix module is unavailable.
+ *
+ * It deliberately reproduces the **matrix** semantics (`automation_status = 'automated'`), not
+ * the broader `totals.automated` count: the two coverage-family numbers shown side by side must
+ * mean the same thing regardless of which implementation answered. See the automated-share note
+ * in docs/project-management/qa-pm-and-regression.md §6.1.
+ */
+function automationPctLocal(projectId: string): number {
+  const total = scalar(
+    "SELECT COUNT(*) AS n FROM test_cases WHERE project_id = ? AND status <> 'deprecated'",
+    projectId,
+  );
+  if (!total) return 0;
+  const automated = scalar(
+    `SELECT COUNT(*) AS n FROM test_cases
+      WHERE project_id = ? AND status <> 'deprecated' AND automation_status = 'automated'`,
+    projectId,
+  );
+  return pct(automated, total);
 }
 
 function executionCoverage(projectId: string): number {
@@ -418,9 +446,10 @@ function countMap(sql: string, ...params: unknown[]): Record<string, number> {
 
 export const metricsService = {
   /**
-   * Async because coverage delegates to lane A's canonical `matrixService.document()`
-   * (ARCHITECTURE.md §5.4 consequence 4). Only the coverage block is delegated; every other
-   * metric stays local so a matrix hiccup degrades one number instead of the whole snapshot.
+   * Async because the coverage family delegates to lane A's canonical `matrixService.document()`
+   * (ARCHITECTURE.md §5.4 consequence 4). Only the coverage-family percentages are delegated;
+   * every other metric stays local so a matrix hiccup degrades those numbers instead of the
+   * whole snapshot.
    */
   async snapshot(projectId: string): Promise<MetricsSnapshot> {
     const t = totals(projectId);
@@ -438,16 +467,17 @@ export const metricsService = {
       generated_at: nowIso(),
       totals: t,
       coverage: {
-        // §5.4 consequence 4: the canonical matrix implementation is authoritative for
-        // requirement coverage. Falls back to the local §5.4 traversal if lane A is unavailable.
+        // §5.4 consequence 4: the matrix is canonical for the WHOLE coverage family. Both of
+        // these are delegated so the matrix page and the metrics page can never disagree.
+        // Each falls back to its local computation only when lane A's module is unavailable.
         requirement_coverage_pct: matrix
           ? matrix.coverage_pct
           : requirementCoverageLocal(projectId),
         test_case_execution_pct: executionCoverage(projectId),
-        // Deliberately NOT delegated: the matrix counts `automation_status = 'automated'` only,
-        // while `totals.automated` follows the shared TestCase contract (engine ≠ manual counts
-        // as automated too). Both are correct for their own question; metrics owns this one.
-        automation_pct: pct(t.automated, t.test_cases),
+        // Matrix semantics count `automation_status = 'automated'` only. That is the number a QA
+        // lead means by "how much of my suite is automated": a case can carry an `api` engine
+        // while still being manual / not yet automated (lane C reports those as blocked).
+        automation_pct: matrix ? matrix.automation_pct : automationPctLocal(projectId),
         regression_suite_size: regressionSize,
       },
       quality: {

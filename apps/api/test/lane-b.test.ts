@@ -1110,31 +1110,85 @@ describe('matrix ↔ metrics agreement (§5.4)', () => {
     );
   });
 
-  test('metrics automation_pct follows the shared TestCase contract, not the matrix shortcut', async () => {
-    // The two are intentionally NOT equal: the matrix counts `automation_status = 'automated'`
-    // only, while the frozen TestCase contract also treats `engine <> 'manual'` as automated
-    // (see MetricsSnapshot / TestCase in @qatools/shared). Metrics owns the broader definition.
-    const direct = await call<{ data: { totals: { test_cases: number; automated: number }; coverage: { automation_pct: number } } }>(
+  test('zero requirements: metrics and matrix BOTH report 0%, never 100%', async () => {
+    // Edge case that the agreement test itself caught: the local fallback used to return 100
+    // for a project with no requirements ("nothing to cover"), while the matrix returns 0.
+    // The empty project has no requirements at all.
+    const matrix = await call<{ data: { summary: { requirements: number; coverage_pct: number } } }>(
       'GET',
-      `/projects/${PROJECT_ID}/metrics`,
+      `/projects/${OTHER_PROJECT_ID}/matrix`,
     );
-    const t = direct.body.data.totals;
-    assert.ok(t.test_cases > 0, 'fixture harus punya test case');
-    assert.equal(
-      direct.body.data.coverage.automation_pct,
-      Number(((t.automated / t.test_cases) * 100).toFixed(1)),
-      'automation_pct harus = automated / test_cases sesuai kontrak TestCase',
+    const metrics = await call<{ data: { coverage: { requirement_coverage_pct: number } } }>(
+      'GET',
+      `/projects/${OTHER_PROJECT_ID}/metrics`,
     );
 
-    // The matrix figure must never exceed the contract figure (its denominator is broader,
-    // its numerator narrower) — a sanity bound that still catches a broken delegation.
+    assert.equal(matrix.body.data.summary.requirements, 0, 'project kosong harus punya 0 requirement');
+    assert.equal(matrix.body.data.summary.coverage_pct, 0);
+    assert.equal(
+      metrics.body.data.coverage.requirement_coverage_pct,
+      0,
+      'tanpa requirement, cakupan harus 0 — bukan 100',
+    );
+    assert.equal(
+      metrics.body.data.coverage.requirement_coverage_pct,
+      matrix.body.data.summary.coverage_pct,
+      'metrik dan matrix harus tetap sepakat pada kasus batas ini',
+    );
+  });
+
+  test('metrics automation_pct equals the matrix automation_pct (strict agreement)', async () => {
+    // Lead ruling: the matrix is the single source of truth for the WHOLE coverage family.
+    // Two different "automation %" values on one dashboard is the same class of defect as the
+    // coverage contradiction in §5.4, so this is a strict equality, not a bound.
     const matrix = await call<{ data: { summary: { automation_pct: number } } }>(
       'GET',
       `/projects/${PROJECT_ID}/matrix`,
     );
+    assert.equal(matrix.status, 200);
+
+    const metrics = await call<{ data: { coverage: { automation_pct: number } } }>(
+      'GET',
+      `/projects/${PROJECT_ID}/metrics`,
+    );
+    assert.equal(metrics.status, 200);
+
+    assert.equal(
+      metrics.body.data.coverage.automation_pct,
+      matrix.body.data.summary.automation_pct,
+      `metrics automation_pct (${metrics.body.data.coverage.automation_pct}%) harus sama dengan matrix (${matrix.body.data.summary.automation_pct}%)`,
+    );
+  });
+
+  test('automation_pct uses matrix semantics, not the broader totals.automated count', async () => {
+    // The two numbers answer different questions and are allowed to differ; this test documents
+    // the distinction that the delegation resolves. `totals.automated` counts cases with an
+    // automation path (engine <> 'manual'); `coverage.automation_pct` counts only cases formally
+    // marked automated, matching the matrix.
+    const res = await call<{
+      data: { totals: { automated: number; test_cases: number }; coverage: { automation_pct: number } };
+    }>('GET', `/projects/${PROJECT_ID}/metrics`);
+
+    const t = res.body.data.totals;
+    assert.ok(t.test_cases > 0, 'fixture harus punya test case');
+
+    const formallyAutomated = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM test_cases
+          WHERE project_id = ? AND status <> 'deprecated' AND automation_status = 'automated'`,
+      )
+      .get(PROJECT_ID) as { n: number };
+
+    assert.equal(
+      res.body.data.coverage.automation_pct,
+      Number(((Number(formallyAutomated.n) / t.test_cases) * 100).toFixed(1)),
+      'coverage.automation_pct harus memakai automation_status = automated',
+    );
+
+    // The broader count must never be smaller than the formal one by definition.
     assert.ok(
-      matrix.body.data.summary.automation_pct <= direct.body.data.coverage.automation_pct,
-      'matrix automation_pct tidak boleh melebihi definisi kontrak TestCase',
+      t.automated >= Number(formallyAutomated.n),
+      'totals.automated (definisi luas) tidak boleh lebih kecil dari hitungan formal',
     );
   });
 });

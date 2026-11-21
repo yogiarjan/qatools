@@ -11,3 +11,7 @@ _verify/raw-output.txt
 *.tsbuildinfo
 _boot.log
 _boot.err
+_cmsg.txt
+_v.log
+_v.err
+_scratch_*.mjs

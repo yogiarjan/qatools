@@ -263,7 +263,7 @@ Tersedia di UI melalui tombol **"Katalog & rumus metrik"** dan di API melalui
 |---|---|---|
 | `requirement_coverage_pct` | kebutuhan dengan ≥ 1 test case terjangkau / total kebutuhan × 100 | ≥ 95 % |
 | `test_case_execution_pct` | test case unik yang punya hasil eksekusi final / total test case aktif × 100 | ≥ 90 % |
-| `automation_pct` | test case terotomasi / total test case aktif × 100 | ≥ 40 % |
+| `automation_pct` | test case dengan `automation_status = 'automated'` / total test case aktif × 100 | ≥ 40 % |
 | `regression_suite_size` | jumlah test case dengan `is_regression = 1` | ≥ 20 kasus |
 
 > **Aturan arah link (`ARCHITECTURE.md` §5.4).** `matrix_links.from_id` adalah artefak **hulu/induk**
@@ -275,6 +275,44 @@ Tersedia di UI melalui tombol **"Katalog & rumus metrik"** dan di API melalui
 > lane A, karena kedua angka ditampilkan berdampingan dan tidak boleh berbeda. Delegasi dilakukan
 > lewat dynamic import dengan fallback lokal yang mengikuti arah §5.4 yang sama. Ada uji regresi yang
 > menegaskan `matrix.coverage_pct === metrics.requirement_coverage_pct`.
+
+### 6.1.1 Satu definisi otomasi untuk seluruh platform (keputusan pemimpin)
+
+Awalnya terdapat **dua** arti "persentase otomasi" di dalam produk:
+
+| Sumber | Definisi | Contoh pada data uji |
+|---|---|---|
+| Matrix (lane A) | `automation_status = 'automated'` | 1/3 = **33,3 %** |
+| `totals.automated` (kontrak `TestCase`) | `automation_status = 'automated'` **atau** `engine <> 'manual'` | 2/3 = **66,7 %** |
+
+Menampilkan dua angka berbeda untuk label yang sama adalah **cacat dengan kelas yang sama** seperti
+kontradiksi cakupan pada §5.4: pengguna tidak mungkin tahu definisi mana yang berlaku di mana.
+
+**Keputusan: matrix adalah satu-satunya sumber kebenaran untuk seluruh keluarga metrik cakupan.**
+`automation_pct` kini **didelegasikan** ke `matrixService.document(projectId).summary.automation_pct`,
+dengan perhitungan lokal hanya sebagai *fallback* terdokumentasi bila modul lane A tidak tersedia —
+dan fallback itu pun **meniru semantik matrix**, bukan definisi yang lebih luas.
+
+**Mengapa semantik matrix yang dipilih.** `automation_status = 'automated'` adalah angka yang
+dimaksud seorang QA lead ketika bertanya "berapa persen suite saya sudah terotomasi". Definisi
+`engine <> 'manual'` **menghitung berlebih**: sebuah test case dapat sudah ditandai ber-engine `api`
+sementara artefak otomasinya belum dibuat — lane C melaporkan kasus seperti itu sebagai `blocked`
+("belum punya API request yang tertaut"), yang justru membuktikan bahwa kasus tersebut belum
+terotomasi.
+
+Yang tersisa berbeda hanyalah `totals.automated`, dan itu memang **bukan** metrik keluarga cakupan:
+ia adalah *hitungan kasus yang punya jalur otomasi*. Perannya hanya sebagai angka konteks pada kartu
+ringkasan, dan perbedaannya didokumentasikan di kode (`metrics/service.ts`) agar tidak tertukar lagi.
+
+Ada dua uji yang mengunci keputusan ini:
+
+1. `metrics.automation_pct === matrix.summary.automation_pct` — **kesamaan ketat**, bukan sekadar
+   batas atas.
+2. `coverage.automation_pct` memakai `automation_status = 'automated'`, sementara `totals.automated`
+   (definisi luas) tidak boleh lebih kecil dari hitungan formal.
+
+Selain itu ada uji kasus batas **nol requirement**: metrik dan matrix sama-sama melaporkan **0 %**,
+bukan 100 % — perbedaan yang pernah lolos dan ditemukan oleh uji kesepakatan itu sendiri.
 
 ### 6.2 Kualitas (Quality)
 
@@ -336,7 +374,7 @@ dengan SVG buatan sendiri (tidak ada library chart, sesuai keputusan stack di `A
 |---|---|---|
 | lane B ← lane C | `executeService.runSuite(ids, opts)` di `modules/execute/index.ts` | dynamic import + `503 engine_unavailable` |
 | lane B ← lane D | `aiService.generate('triage_defect', …)` di `modules/ai/index.ts` | dynamic import + `503 ai_unavailable` |
-| lane B ← lane A | `matrixService.document(projectId)` di `modules/matrix/index.ts` | fallback traversal lokal ber-arah §5.4 |
+| lane B ← lane A | `matrixService.document(projectId)` di `modules/matrix/index.ts` | fallback traversal lokal ber-arah §5.4, dengan semantik matrix |
 | lane B → lane C | `regressionService.selectSuite(projectId, opts)` | diekspor dari `modules/regression/index.ts` |
 | lane B → A, C, E | `metricsService.snapshot(projectId)` | diekspor dari `modules/metrics/service.ts` |
 
