@@ -708,7 +708,7 @@ const TEST_CASES: TestCaseSeed[] = [
     scenarioIndex: 15, title: 'Checkout berhasil membuat pesanan dan memotong stok', objective: 'Memverifikasi alur checkout end-to-end.',
     pre: 'Keranjang berisi 1 item dengan stok cukup', type: 'functional', layer: 'api', priority: 'critical', severity: 'blocker', engine: 'api', automation: 'automated', minutes: 6,
     tags: ['checkout', 'critical-path', 'smoke'],
-    data: [{ field: 'productId', value: 'prd_001' }, { field: 'qty', value: '2' }],
+    data: [{ field: 'product_id', value: 'prod_001' }, { field: 'quantity', value: '2' }],
     expected: 'HTTP 201 dengan orderId, stok berkurang tepat 2',
     steps: [
       { action: 'POST /api/mock/orders dengan item valid', expected: 'HTTP 201 Created' },
@@ -1015,12 +1015,12 @@ function seedEnvironment(projectId: string): string {
     projectId,
     id,
     'Kombinasi kredensial dan item pesanan untuk pengujian manual maupun otomatis.',
-    toJson(['username', 'password', 'expected', 'productId', 'qty']),
+    toJson(['username', 'password', 'expected', 'product_id', 'quantity']),
     toJson([
-      { username: 'admin', password: 'secret', expected: '200', productId: 'prd_001', qty: '1' },
-      { username: 'admin', password: 'salah', expected: '401', productId: 'prd_001', qty: '1' },
-      { username: 'admin', password: 'secret', expected: '201', productId: 'prd_002', qty: '2' },
-      { username: 'admin', password: 'secret', expected: '400', productId: '', qty: '0' },
+      { username: 'admin', password: 'secret', expected: '200', product_id: 'prod_001', quantity: '1' },
+      { username: 'admin', password: 'salah', expected: '401', product_id: 'prod_001', quantity: '1' },
+      { username: 'admin', password: 'secret', expected: '201', product_id: 'prod_002', quantity: '2' },
+      { username: 'admin', password: 'secret', expected: '400', product_id: '', quantity: '0' },
     ]),
     ts,
     ts,
@@ -1067,7 +1067,7 @@ function seedApiArtifacts(projectId: string, testCaseIds: string[], environmentI
       headers: { 'Content-Type': 'application/json' },
       assertions: [
         { source: 'status', operator: 'equals', expected: 200, message: 'Status harus 200' },
-        { source: 'jsonpath', path: '$.token', operator: 'exists', message: 'Token harus ada' },
+        { source: 'jsonpath', path: '$.data.token', operator: 'exists', message: 'Token harus ada di $.data.token' },
       ],
     },
     {
@@ -1080,7 +1080,7 @@ function seedApiArtifacts(projectId: string, testCaseIds: string[], environmentI
       headers: { 'Content-Type': 'application/json' },
       assertions: [
         { source: 'status', operator: 'equals', expected: 401, message: 'Status harus 401' },
-        { source: 'jsonpath', path: '$.token', operator: 'not_exists', message: 'Tidak boleh ada token' },
+        { source: 'jsonpath', path: '$.data.token', operator: 'not_exists', message: 'Tidak boleh ada token' },
       ],
     },
     {
@@ -1112,12 +1112,15 @@ function seedApiArtifacts(projectId: string, testCaseIds: string[], environmentI
       name: 'Buat pesanan (mock)',
       method: 'POST',
       path: '/orders',
-      body: toJson({ productId: 'prd_001', qty: 2 }),
+      // Field names must match the mock contract: product_id / quantity.
+      // Product ids in the mock are `prod_*` (not `prd_*`), and prod_004 has zero stock.
+      body: toJson({ product_id: 'prod_001', quantity: 2 }),
       bodyType: 'json',
       headers: { 'Content-Type': 'application/json' },
       assertions: [
         { source: 'status', operator: 'equals', expected: 201 },
-        { source: 'jsonpath', path: '$.orderId', operator: 'exists', message: 'orderId harus ada' },
+        { source: 'jsonpath', path: '$.data.id', operator: 'exists', message: 'id pesanan harus ada' },
+        { source: 'jsonpath', path: '$.data.status', operator: 'equals', expected: 'created' },
       ],
     },
     {
@@ -1129,7 +1132,8 @@ function seedApiArtifacts(projectId: string, testCaseIds: string[], environmentI
       bodyType: 'none',
       assertions: [
         { source: 'status', operator: 'equals', expected: 200 },
-        { source: 'jsonpath', path: '$.data', operator: 'exists' },
+        { source: 'jsonpath', path: '$.data', operator: 'exists', message: 'daftar pesanan harus ada' },
+        { source: 'jsonpath', path: '$.total', operator: 'gte', expected: 0, message: 'total pesanan harus >= 0' },
       ],
     },
     {

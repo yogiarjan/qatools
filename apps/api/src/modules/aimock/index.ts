@@ -165,6 +165,49 @@ export default async function routes(app: FastifyInstance): Promise<void> {
   });
 
   /**
+   * Order history. Needed so "riwayat pesanan" style cases have a real list endpoint;
+   * without it the demo seed's GET /orders request 404s.
+   * Returns a `{ data, total }` envelope like every other QATools list route.
+   */
+  app.get('/mock/orders', async (req) => {
+    const query = (req.query ?? {}) as Record<string, unknown>;
+    const status = typeof query.status === 'string' ? query.status : '';
+    const all = [...state.orders.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const rows = status ? all.filter((o) => o.status === status) : all;
+    return list(rows, rows.length);
+  });
+
+  /**
+   * Admin-only report endpoint. The mock has no real authorization layer, but it DOES
+   * model the auth boundary honestly so security test cases behave correctly:
+   *   - no Authorization header            -> 401
+   *   - Bearer token for a non-admin role  -> 403
+   *   - Bearer token for the admin role    -> 200
+   * Role comes from the `X-Role` header (defaults to admin when a valid token is present).
+   */
+  app.get('/mock/admin/reports', async (req, reply) => {
+    const auth = String((req.headers['authorization'] ?? '') as string);
+    if (!auth.toLowerCase().startsWith('bearer ') || !auth.slice(7).trim()) {
+      return fail(reply, 401, 'unauthorized', 'Token tidak ditemukan. Sertakan header Authorization: Bearer <token>.');
+    }
+    const role = String((req.headers['x-role'] ?? 'admin') as string).toLowerCase();
+    if (role !== 'admin') {
+      return fail(reply, 403, 'forbidden', `Peran "${role}" tidak berhak mengakses laporan penjualan.`);
+    }
+    const orders = [...state.orders.values()];
+    return one({
+      generated_at: new Date().toISOString(),
+      currency: 'IDR',
+      orders_total: orders.length,
+      revenue_total: orders.reduce((sum, o) => sum + o.total, 0),
+      by_status: orders.reduce<Record<string, number>>((acc, o) => {
+        acc[o.status] = (acc[o.status] ?? 0) + 1;
+        return acc;
+      }, {}),
+    });
+  });
+
+  /**
    * Deterministic flakiness: every 1st and 2nd call of a cycle of 3 returns 500.
    * Automation lanes can therefore prove retry/healing logic reproducibly.
    */
