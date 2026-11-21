@@ -1,8 +1,14 @@
-# QATools — Architecture & Lane Contract (v1)
+# QATools — Architecture & Lane Contract (v1.1)
 
 > **This file is the binding contract between parallel workstreams. Do not change shared shapes
 > without telling the Lead.** Anything marked **[FROZEN]** is owned by the Lead and must not be
 > edited by lane owners.
+>
+> **Changelog v1.1** (all three raised by independent verification):
+> - §5.3 — corrected the id-prefix table: `dbc_` = db_checks, `db_connections` = `dbcn_`.
+> - §5.4 — **new**: `matrix_links` direction convention, fixing a writer/reader disagreement that
+>   made `requirement_coverage_pct` permanently 0.
+> - §7 — `Db.prepare().all()` must return an array (regression note).
 
 ## 1. Product in one paragraph
 
@@ -226,6 +232,10 @@ block. Tell the Lead what you stubbed.
   schema. Only the module that owns the entity writes to its table.
 - Use `db.prepare(...).all()/get()/run()`. Parameterized statements only.
 - Wrap multi-statement writes in `db.transaction(fn)`.
+- **Regression note:** `all()` must return a real **array**. An early version applied the row
+  normaliser to the array itself, collapsing it into an object with numeric keys and breaking every
+  list endpoint in every lane (`rows.slice is not a function`). If you touch the facade, assert
+  `Array.isArray(db.prepare('SELECT 1 AS a').all()) === true`.
 
 ## 8. [FROZEN] Web app conventions
 

@@ -1,0 +1,23 @@
+import { spawn } from "node:child_process";
+import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+const root = resolve(import.meta.dirname, "..");
+const P = 5335, B = `http://127.0.0.1:${P}`;
+const c = spawn(process.execPath, [resolve(root,"apps/api/node_modules/tsx/dist/cli.mjs"), resolve(root,"apps/api/src/server.ts")], { cwd: resolve(root,"apps/api"), env: {...process.env, PORT:String(P), HOST:"127.0.0.1", QATOOLS_DB: resolve(tmpdir(),`cov-${Date.now()}.db`)}, stdio:["ignore","pipe","pipe"] });
+for (let i=0;i<80;i++){ try{ if((await fetch(`${B}/api/health`)).ok) break }catch{} await new Promise(r=>setTimeout(r,300)); }
+const j = async (u,m,b)=>{const r=await fetch(B+u,{method:m||"GET",headers:{"content-type":"application/json"},body:b?JSON.stringify(b):undefined});return {s:r.status,j:await r.json().catch(()=>null)};};
+const p = (await j("/api/projects","POST",{key:"COV",name:"Coverage"})).j.data.id;
+const rq = (await j(`/api/projects/${p}/requirements`,"POST",{code:"REQ-001",title:"T",priority:"critical"})).j.data.id;
+const uc = (await j(`/api/projects/${p}/usecases`,"POST",{code:"UC-001",name:"U",requirement_ids:[rq]})).j.data.id;
+const sc = (await j(`/api/projects/${p}/scenarios`,"POST",{use_case_id:uc,code:"SC-001",title:"S",kind:"happy_path"})).j.data.id;
+const tc = (await j(`/api/projects/${p}/testcases`,"POST",{scenario_id:sc,use_case_id:uc,code:"TC-001",title:"T",engine:"api",layer:"api",is_regression:1})).j.data.id;
+console.log("created chain: req,uc,sc,tc");
+const mx = await j(`/api/projects/${p}/matrix`);
+console.log("MATRIX summary =", JSON.stringify(mx.j.data.summary));
+console.log("MATRIX cells   =", JSON.stringify(mx.j.data.cells.map(x=>({req:x.requirement_id.slice(0,8),cov:x.coverage,pct:x.coverage_pct,tc:x.test_case_ids.length}))));
+const mt = await j(`/api/projects/${p}/metrics`);
+console.log("METRICS coverage =", JSON.stringify(mt.j.data.coverage));
+console.log("METRICS totals   =", JSON.stringify(mt.j.data.totals));
+console.log("");
+console.log(">>> matrix coverage_pct =", mx.j.data.summary.coverage_pct, " vs metrics requirement_coverage_pct =", mt.j.data.coverage.requirement_coverage_pct);
+c.kill("SIGKILL"); process.exit(0);

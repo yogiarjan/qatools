@@ -1285,7 +1285,7 @@ function seedDbArtifacts(projectId: string, testCaseIds: string[]): void {
                               setup_sql, teardown_sql, generated_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, 'manual', ?, ?)`,
     ).run(
-      newId('dbk_'),
+      newId('dbc_'), // ARCHITECTURE.md §5.3 (amended v1.1): dbc_ = db_checks
       projectId,
       connectionId,
       c.tcIndex === null ? null : (testCaseIds[c.tcIndex] ?? null),
@@ -1874,14 +1874,17 @@ export function seedDemoProject(): DemoSeedResult {
 
 /* Optional: also seed the curriculum if lane-learn's seeder is present.
  * The module specifier is built at runtime so a missing file is a catchable error
- * rather than a compile-time/resolution-time failure. */
+ * rather than a compile-time/resolution-time failure.
+ * `seedCurriculum` lives in `curriculum-seed.ts` (the data lives in curriculum.ts). */
 async function maybeSeedCurriculum(): Promise<string> {
-  const specifier = './curriculum.js';
+  const specifier = './curriculum-seed.js';
   try {
-    const mod = (await import(/* @vite-ignore */ specifier)) as { seedCurriculum?: () => unknown };
+    const mod = (await import(/* @vite-ignore */ specifier)) as {
+      seedCurriculum?: (opts?: { strict?: boolean; quiet?: boolean }) => unknown;
+    };
     if (typeof mod.seedCurriculum === 'function') {
-      mod.seedCurriculum();
-      return 'curriculum seeded (via src/seed/curriculum.ts)';
+      mod.seedCurriculum({ quiet: true });
+      return 'curriculum seeded (9 courses / 32 modules / 101 lessons)';
     }
     return 'curriculum module found but no seedCurriculum() export — skipped';
   } catch (err) {

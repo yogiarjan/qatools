@@ -74,9 +74,38 @@ class Db {
     };
   }
 
-  /** Runs `fn` inside a transaction; rolls back on throw. */
+  /**
+   * Runs `fn` inside a transaction; rolls back on throw.
+   *
+   * RE-ENTRANT: SQLite rejects a nested bare `BEGIN` ("cannot start a transaction within
+   * a transaction"), so a route-level transaction that wraps a repo helper which also opens
+   * one used to throw. Nested calls now use SAVEPOINTs and only the outermost call commits.
+   */
   transaction<T>(fn: () => T): T {
+    if (this.txDepth > 0) {
+      // Already inside a transaction: use a savepoint so the inner failure can be isolated.
+      const name = `sp_${++this.savepointSeq}`;
+      this.raw.exec(`SAVEPOINT ${name}`);
+      this.txDepth++;
+      try {
+        const out = fn();
+        this.raw.exec(`RELEASE ${name}`);
+        return out;
+      } catch (err) {
+        try {
+          this.raw.exec(`ROLLBACK TO ${name}`);
+          this.raw.exec(`RELEASE ${name}`);
+        } catch {
+          /* ignore savepoint rollback failure */
+        }
+        throw err;
+      } finally {
+        this.txDepth--;
+      }
+    }
+
     this.raw.exec('BEGIN');
+    this.txDepth++;
     try {
       const out = fn();
       this.raw.exec('COMMIT');
@@ -88,8 +117,18 @@ class Db {
         /* ignore rollback failure */
       }
       throw err;
+    } finally {
+      this.txDepth--;
     }
   }
+
+  /** True while a transaction (or savepoint) is open. */
+  get inTransaction(): boolean {
+    return this.txDepth > 0;
+  }
+
+  private txDepth = 0;
+  private savepointSeq = 0;
 }
 
 /**

@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "@qatools/shared": ["../../packages/shared/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/db/**/*.ts",
+    "src/lib/**/*.ts",
+    "src/modules/projects/**/*.ts",
+    "src/modules/requirements/**/*.ts",
+    "src/modules/usecases/**/*.ts",
+    "src/modules/scenarios/**/*.ts",
+    "src/modules/testcases/**/*.ts",
+    "src/modules/matrix/**/*.ts",
+    "src/modules/exports/**/*.ts",
+    "test/lane-a.test.ts",
+    "../../packages/shared/src/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

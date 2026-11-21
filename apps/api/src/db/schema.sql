@@ -521,6 +521,22 @@ CREATE TABLE IF NOT EXISTS lesson_progress (
 );
 CREATE INDEX IF NOT EXISTS idx_lp_enr ON lesson_progress(enrollment_id);
 
+-- A durable record of each quiz attempt. Required so the certificate gate can prove
+-- "all course quizzes were passed" rather than merely "all lessons were completed".
+-- UNIQUE(enrollment_id, quiz_id) keeps the best/latest attempt per quiz.
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+  id            TEXT PRIMARY KEY,
+  quiz_id       TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+  enrollment_id TEXT NOT NULL REFERENCES enrollments(id) ON DELETE CASCADE,
+  score         REAL NOT NULL DEFAULT 0,
+  passed        INTEGER NOT NULL DEFAULT 0,
+  answers       TEXT,
+  submitted_at  TEXT NOT NULL,
+  UNIQUE(enrollment_id, quiz_id)
+);
+CREATE INDEX IF NOT EXISTS idx_qa_enrollment ON quiz_attempts(enrollment_id);
+CREATE INDEX IF NOT EXISTS idx_qa_quiz ON quiz_attempts(quiz_id);
+
 CREATE TABLE IF NOT EXISTS certificates (
   id                TEXT PRIMARY KEY,
   code              TEXT NOT NULL UNIQUE,

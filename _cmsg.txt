@@ -1,0 +1,14 @@
+fix(db): re-entrant transactions; add quiz_attempts; §5.3 prefix compliance
+
+- db.transaction() is now re-entrant via SAVEPOINTs. A bare BEGIN threw
+  "cannot start a transaction within a transaction" whenever a route-level
+  transaction wrapped a repo helper that opened its own (reported by lane-docs,
+  it broke POST /testcases). Nested calls use savepoints; only the outermost
+  commits. Added db.inTransaction.
+- schema.sql: add quiz_attempts (UNIQUE(enrollment_id, quiz_id)) so the
+  certificate gate can prove "all quizzes passed" instead of merely
+  "all lessons completed" (requested by lane-learn).
+- demo.ts: db_checks ids now use dbc_ per the §5.3 v1.1 ruling (was dbk_).
+
+Verified: nested rollback isolates; 21/21 modules register; PROBE_RESULT=PASS;
+full API test suite 204/204.

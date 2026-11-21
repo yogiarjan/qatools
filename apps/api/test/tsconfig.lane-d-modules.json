@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../dist",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "noEmit": true,
+    "paths": {
+      "@qatools/shared": ["../../../../packages/shared/src/index.ts"]
+    }
+  },
+  "include": ["../src/modules/ai/**/*.ts", "../src/modules/aimock/**/*.ts", "../../../../packages/shared/src/**/*.ts"],
+  "exclude": ["../dist", "../node_modules"]
+}
